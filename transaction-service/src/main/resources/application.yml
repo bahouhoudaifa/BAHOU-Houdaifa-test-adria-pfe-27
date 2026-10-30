@@ -1,0 +1,90 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: transaction-service
+  config:
+    import: "optional:configserver:http://localhost:8888"
+  datasource:
+    url: jdbc:h2:mem:transactiondb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driverClassName: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  graphql:
+    graphiql:
+      enabled: true
+      path: /graphiql
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+  ai:
+    mcp:
+      server:
+        enabled: true
+        name: transaction-service-mcp
+        version: 1.0.0
+        type: SYNC
+        sse-message-endpoint: /mcp/message
+        stdio: false
+
+account-service:
+  url: http://localhost:8081
+
+bank:
+  transaction:
+    max-amount: 1000.00
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      accountServiceCircuitBreaker:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+  retry:
+    instances:
+      accountServiceRetry:
+        maxAttempts: 3
+        waitDuration: 1000ms
+        retryExceptions:
+          - net.houdaifa.transactionservice.service.exception.AccountServiceUnavailableException
+        ignoreExceptions:
+          - net.houdaifa.transactionservice.service.exception.AccountNotFoundException
+          - net.houdaifa.transactionservice.service.exception.AccountBlockedException
+          - net.houdaifa.transactionservice.service.exception.InsufficientBalanceException
+          - net.houdaifa.transactionservice.service.exception.CurrencyMismatchException
+          - net.houdaifa.transactionservice.service.exception.InvalidAmountException
+          - net.houdaifa.transactionservice.service.exception.TransactionLimitExceededException
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,circuitbreakers,retry,mcp,env
+  health:
+    circuitbreakers:
+      enabled: true
