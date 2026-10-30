@@ -1,0 +1,51 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: account-service
+  config:
+    import: "optional:configserver:http://localhost:8888"
+  datasource:
+    url: jdbc:h2:mem:accountdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driverClassName: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  graphql:
+    graphiql:
+      enabled: true
+      path: /graphiql
+  ai:
+    mcp:
+      server:
+        enabled: true
+        name: account-service-mcp
+        version: 1.0.0
+        type: SYNC
+        sse-message-endpoint: /mcp/message
+        stdio: false
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,mcp,env
